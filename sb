@@ -1,0 +1,113 @@
+# API call example
+
+const apiKey = 'your-openai-api-key';
+const prompt = "please dive deeper into this selection";
+
+fetch("https://api.openai.com/v1/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${apiKey}`
+  },
+  body: JSON.stringify({
+    model: "gpt-4",  // You can specify GPT-4 here
+    prompt: prompt,
+    max_tokens: 1000  // Control the size of the response
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data.choices[0].text));
+
+# Chrome extension set up
+
+{
+  "manifest_version": 3,
+  "name": "AI Learning Assistant",
+  "version": "1.0",
+  "description": "A tool for diving deeper into educational content and simplifying concepts.",
+  "permissions": ["activeTab", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
+
+
+# User interface
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AI Learning Assistant</title>
+    <style>
+      body { font-family: Arial, sans-serif; }
+      #input { width: 100%; height: 100px; margin-bottom: 10px; }
+      #actions { margin-bottom: 20px; }
+    </style>
+  </head>
+  <body>
+    <textarea id="input" placeholder="Paste your text here"></textarea>
+    <div id="actions">
+      <button id="diveDeeper">Dive Deeper</button>
+      <button id="helpUnderstand">Help Me Understand</button>
+    </div>
+    <div id="result"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
+
+
+#UI
+
+document.getElementById('diveDeeper').addEventListener('click', () => handleRequest('dive deeper'));
+document.getElementById('helpUnderstand').addEventListener('click', () => handleRequest('help me understand'));
+
+function handleRequest(action) {
+  const userInput = document.getElementById('input').value;
+  const prompt = action === 'dive deeper' ? 
+    `Please dive deeper into this selection: ${userInput}` : 
+    `Please help me understand and simplify this selection: ${userInput}`;
+  
+  chrome.runtime.sendMessage({ action: 'makeRequest', prompt: prompt }, (response) => {
+    document.getElementById('result').innerText = response;
+  });
+}
+
+
+# API call to GPT
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'makeRequest') {
+    const apiKey = 'YOUR_OPENAI_API_KEY';  // Insert your OpenAI API key here.
+    const prompt = message.prompt;
+
+    fetch("https://api.openai.com/v1/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        prompt: prompt,
+        max_tokens: 500  // Adjust as needed.
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      sendResponse(data.choices[0].text);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      sendResponse('Something went wrong.');
+    });
+  }
+  return true;  // Indicates asynchronous response.
+});
